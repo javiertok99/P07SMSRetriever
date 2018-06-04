@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -41,42 +42,75 @@ public class FragmentText extends Fragment {
         btnRetrieve.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String text = etText.getText().toString();
-                String[] words = text.split(" ");
-                Uri uri = Uri.parse("content://sms");
-                String[] reqCols = new String[]{"date", "address", "body", "type"};
-                ContentResolver cr = getActivity().getContentResolver();
-                String filter="body";
-                int length = words.length;
-                String[] filterArgs = new String [length];
-                for(int i = 0; i < words.length; i ++){
-                    if(i > 0){
-                        filter += "OR body";
-                    }
-                    filter += " LIKE ? ";
-                    filterArgs[i] = "%" + words[i] + "%";
-                }
-                Cursor cursor = cr.query(uri, reqCols, filter, filterArgs, null);
-                String smsBody = "";
-                if (cursor.moveToFirst()) {
-                    do {
-                        long dateInMillis = cursor.getLong(0);
-                        String date = (String) DateFormat
-                                .format("dd MMM yyyy h:mm:ss aa", dateInMillis);
-                        String address = cursor.getString(1);
-                        String body = cursor.getString(2);
-                        String type = cursor.getString(3);
-                        if (type.equalsIgnoreCase("1")) {
-                            type = "Inbox:";
-                        } else {
-                            type = "Sent:";
+                if(!TextUtils.isEmpty(etText.getText().toString())){
+                    String text = etText.getText().toString();
+                    String[] words = text.split(" ");
+
+                    Uri uri = Uri.parse("content://sms");
+                    String[] reqCols = new String[]{"date", "address", "body", "type"};
+                    ContentResolver cr = getActivity().getContentResolver();
+
+                    String filter="body";
+                    int length = words.length;
+                    String[] filterArgs = new String [length];
+
+                    for(int i = 0; i < words.length; i ++){
+                        if(i > 0){
+                            filter += "OR body";
                         }
-                        smsBody += type + " " + address + "\n at " + date
-                                + "\n\"" + body + "\"\n----------------\n";
-                    } while (cursor.moveToNext());
+                        filter += " LIKE ? ";
+                        filterArgs[i] = "%" + words[i] + "%";
+                    }
+
+                    Cursor cursor = cr.query(uri, reqCols, filter, filterArgs, null);
+                    String smsBody = "";
+                    if (cursor.moveToFirst()) {
+                        do {
+                            long dateInMillis = cursor.getLong(0);
+                            String date = (String) DateFormat
+                                    .format("dd MMM yyyy h:mm:ss aa", dateInMillis);
+                            String address = cursor.getString(1);
+                            String body = cursor.getString(2);
+                            String type = cursor.getString(3);
+                            if (type.equalsIgnoreCase("1")) {
+                                type = "Inbox:";
+                            } else {
+                                type = "Sent:";
+                            }
+                            smsBody += type + " " + address + "\n at " + date
+                                    + "\n\"" + body + "\"\n----------------\n";
+                        } while (cursor.moveToNext());
+                    }
+                    emailText = smsBody;
+                    tvRetrieved.setText(smsBody);
+                }else{
+                    Uri uri = Uri.parse("content://sms");
+                    String[] reqCols = new String[]{"date", "address", "body", "type"};
+                    ContentResolver cr = getActivity().getContentResolver();
+
+                    Cursor cursor = cr.query(uri, reqCols, null, null, null);
+                    String smsBody = "";
+                    if (cursor.moveToFirst()) {
+                        do {
+                            long dateInMillis = cursor.getLong(0);
+                            String date = (String) DateFormat
+                                    .format("dd MMM yyyy h:mm:ss aa", dateInMillis);
+                            String address = cursor.getString(1);
+                            String body = cursor.getString(2);
+                            String type = cursor.getString(3);
+                            if (type.equalsIgnoreCase("1")) {
+                                type = "Inbox:";
+                            } else {
+                                type = "Sent:";
+                            }
+                            smsBody += type + " " + address + "\n at " + date
+                                    + "\n\"" + body + "\"\n----------------\n";
+                        } while (cursor.moveToNext());
+                    }
+                    emailText = smsBody;
+                    tvRetrieved.setText(smsBody);
                 }
-                emailText = smsBody;
-                tvRetrieved.setText(smsBody);
+
             }
         });
 
@@ -89,7 +123,6 @@ public class FragmentText extends Fragment {
                 Intent emailIntent = new Intent(Intent.ACTION_SEND);
                 emailIntent.setData(Uri.parse("mailto:"));
                 emailIntent.setType("text/plain");
-
 
                 emailIntent.putExtra(Intent.EXTRA_EMAIL, TO);
                 emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Your subject");
